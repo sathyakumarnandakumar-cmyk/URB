@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sweep Bandit Experiment Report - Ingolstadt Custom</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1, h2, h3 { color: #2c3e50; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .image-container { display: flex; flex-direction: column; gap: 20px; margin: 20px 0; }
+        img { max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px; }
+    </style>
+</head>
+<body>
+
+    <h1>Experiment Report: Sweep Bandit REINFORCE Routing</h1>
+    <p><strong>Experiment ID:</strong> sweep_bandit/lr_3e-4_ent_0.01_temp_0.5_seed_42</p>
+
+    <h2>1. Algorithm Details</h2>
+    
+    <h3>1.1 Model & Origin</h3>
+    <p>The core algorithm is an independent <strong>Bandit REINFORCE</strong> policy gradient model utilizing a PyTorch Multi-Layer Perceptron (MLP) architecture. It was developed directly in this repository (<code>scripts/bandit_reinforce.py</code>) to replace the legacy UCB algorithm with a differentiable deep learning approach.</p>
+    
+    <h3>1.2 Algorithm Mechanics</h3>
+    <p>Unlike UCB which uses deterministic bounds, Bandit REINFORCE maintains a stochastic policy (a probability distribution) over all possible routes. It operates as follows:</p>
+    <ul>
+        <li><strong>State Space:</strong> The continuous observation space (<code>previous_agents_plus_start_time</code>) is fed directly into a multi-layer Neural Network without arbitrary discretization.</li>
+        <li><strong>Action Selection:</strong> The neural network outputs logits (scores) for each route. These logits are scaled by a <strong>Temperature</strong> parameter and converted into probabilities using a Softmax function. The agent then dynamically samples a route from this probability distribution.</li>
+        <li><strong>Exploration via Entropy:</strong> To prevent premature convergence to sub-optimal routes, an <strong>Entropy Bonus</strong> is mathematically added to the objective function, forcing the agent to maintain a minimum level of randomness in its early route choices.</li>
+        <li><strong>Network Update:</strong> After completing a route, the agent calculates the log-probability of the chosen route and multiplies it by the advantage (<code>Reward - Baseline</code>). The network weights are updated using gradient ascent (the REINFORCE theorem) scaled by the <strong>Learning Rate</strong>.</li>
+        <li><strong>Reward Structure:</strong> The reward signal is the negative travel time (<code>-travel_time</code>), encouraging the network to strictly increase the probability of choosing faster routes.</li>
+    </ul>
+
+    <h2>2. Hyperparameters & Configuration</h2>
+    <p>Extracted from <code>exp_config.json</code>:</p>
+    <table>
+        <tr><th>Parameter</th><th>Value</th></tr>
+        <tr><td><strong>Learning Rate (LR)</strong></td><td>0.0003 (3e-4)</td></tr>
+        <tr><td><strong>Entropy Coefficient</strong></td><td>0.01</td></tr>
+        <tr><td><strong>Temperature</strong></td><td>0.5</td></tr>
+        <tr><td><strong>Baseline Alpha</strong></td><td>0.05</td></tr>
+        <tr><td><strong>Total Agents</strong></td><td>1035 (Human: 621, CAV: 414)</td></tr>
+        <tr><td><strong>Training Episodes</strong></td><td>500</td></tr>
+        <tr><td><strong>Testing Episodes</strong></td><td>100</td></tr>
+        <tr><td><strong>Environment Seed</strong></td><td>42</td></tr>
+    </table>
+
+    <h2>3. Evaluation Metrics</h2>
+    <p>Extracted from <code>metrics/BenchmarkMetrics.csv</code>:</p>
+    <table>
+        <tr><th>Metric</th><th>Value (seconds)</th><th>Description</th></tr>
+        <tr><td><code>t_pre</code></td><td>4.196</td><td>Baseline human traffic travel time before AV intervention.</td></tr>
+        <tr><td><code>t_test</code></td><td>4.288</td><td>Overall average fleet travel time during the testing phase.</td></tr>
+        <tr><td><code>t_train</code></td><td>4.401</td><td>Overall average fleet travel time during the training phase.</td></tr>
+        <tr><td><code>t_CAV</code></td><td>4.412</td><td>Average travel time of specifically the Autonomous Vehicles (CAVs) in the testing phase.</td></tr>
+        <tr><td><code>t_HDV_test</code></td><td>4.205</td><td>Average travel time of the remaining Human-Driven Vehicles (HDVs) in the testing phase.</td></tr>
+    </table>
+
+    <h2>4. Training & Performance Plots</h2>
+    <div class="image-container">
+        <div>
+            <h3>Travel Times</h3>
+            <img src="plots/travel_times.png" alt="Travel Times over Episodes">
+        </div>
+        <div>
+            <h3>Rewards</h3>
+            <img src="plots/rewards.png" alt="Rewards over Episodes">
+        </div>
+    </div>
+
+</body>
+</html>
