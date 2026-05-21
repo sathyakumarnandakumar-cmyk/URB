@@ -741,13 +741,8 @@ if __name__ == "__main__":
         print(f"Skip collecting: {skip_collecting}")
         print(f"results folder: {results_folder}")
 
-    data_path = ""
-    for root, dirs, files in os.walk(results_folder):
-        if exp_id in dirs:
-            data_path = os.path.join(root, exp_id)
-            break
-
-    if data_path == "":
+    data_path = os.path.join(results_folder, exp_id)
+    if not os.path.exists(data_path):
         print(f"Experiment ID {exp_id} not found in {results_folder}")
         sys.exit(1)
 
