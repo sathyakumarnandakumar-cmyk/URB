@@ -36,7 +36,17 @@ Each job executed 500 training episodes and 100 testing episodes on the `ingolst
 
 ---
 
-## 3. Results and Rankings
+## 3. Prerequisite Check: The TraCI Handle Bug
+
+### Context
+Another prerequisite flagged in the documentation questioned whether `env.simulator.sumo` was the correct handle to access the active SUMO simulation. If incorrect, the connection would fail and the algorithm would fall back to feeding the neural network neutral constants `[1.0, 0.0]` instead of real-time traffic data.
+
+### Investigation & Resolution
+To verify this, the internal source code of the RouteRL simulator (`/home/sathyakumarnandakumar/URB/urbenv-github/lib/python3.12/site-packages/routerl/environment/simulator.py`) was analyzed. It was discovered that the true active handle was `env.simulator.sumo_connection`. The Bandit REINFORCE script was patched prior to the sweep to use this correct handle, ensuring the neural network received actual, real-time congestion data throughout the entire 54-job execution.
+
+---
+
+## 4. Results and Rankings
 
 The results demonstrate the stability of the Bandit REINFORCE algorithm in this topology. The average travel time for Autonomous Vehicles (CAVs) across all configurations fell into a tightly clustered band between **4.328 seconds** and **4.403 seconds**.
 
@@ -63,7 +73,7 @@ Ranked by the lowest average CAV travel time across all 3 seeds.
 
 ---
 
-## 4. Visual Analysis
+## 5. Visual Analysis
 
 ### The Best Configuration
 **Parameters:** `lr=1e-3`, `entropy=0.05`, `temperature=0.5`
