@@ -1,0 +1,6 @@
+{
+    "training_eps": 400,
+    "alpha": 0.1,
+    "beta": 3.0,
+    "update_every": 1
+}

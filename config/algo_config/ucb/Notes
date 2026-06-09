@@ -1,0 +1,114 @@
+Notes: 
+
+
+{
+    "training_eps": 400,
+    "alpha": 0.1,
+    "beta": 3.0,
+    "update_every": 1
+}
+
+
+
+Commands etc:
+The script we just ran for the test is the one located at scripts/ucb_new.py, which we created earlier.
+
+Here's the exact test command you can copy/paste into your terminal if you want to run it again yourself:
+
+cd /home/sathyakumarnandakumar/URB
+source urbenv/bin/activate
+export SUMO_HOME=/home/sathyakumarnandakumar/URB/urbenv/lib/python3.12/site-packages/sumo
+
+python scripts/ucb_new.py \
+  --id ucb_test \
+  --alg-conf test \
+  --env-conf config1 \
+  --task-conf test \
+  --net ingolstadt_custom \
+  --env-seed 42
+
+
+{
+    "training_eps": 4000,
+    "eps_init": 1.0,
+    "eps_decay": 0.9993,
+    "buffer_size": 4096,
+    "batch_size": 64,
+    "lr": 0.0007,
+    "num_epochs": 2,
+    "num_hidden": 2,
+    "widths": [
+        96,
+        64,
+        32
+    ],
+    "update_every": 2,
+    "smooth_by": 10,
+    "plot_choices": "basic",
+    "save_every": 5,
+    "plot_every": 50,
+    "observations" : "previous_agents_plus_start_time",
+    "path_gen_workers": 4,
+    "number_of_paths": 4,
+    "path_gen_beta": -5,
+    "num_samples": 10,
+    "ratio_machines": 0.4,
+    "human_learning_episodes": 200,
+    "test_eps": 100,
+    "should_humans_adapt": false,
+    "av_behavior": "selfish",
+    "human_model": "gawron",
+    "human_alpha": 0.2,
+    "human_beta": -1.5,
+    "human_beta_randomness": 0.1,
+    "human_deterministic": true,
+    "network": "ingolstadt_custom",
+    "env_seed": 42,
+    "torch_seed": 42,
+    "env_config": "config1",
+    "task_config": "config1",
+    "alg_config": "config4",
+    "script": "scripts/iql.py",
+    "algorithm": "iql",
+    "num_agents": 1035,
+    "num_machines": 414
+}
+
+
+
+tmux new -s ucb_run
+
+cd /home/sathyakumarnandakumar/URB
+source urbenv/bin/activate
+export SUMO_HOME=/home/sathyakumarnandakumar/URB/urbenv/lib/python3.12/site-packages/sumo
+
+python scripts/ucb_new.py \
+  --id ucb_ingolstadt_custom_config1 \
+  --alg-conf config1 \
+  --env-conf config1 \
+  --task-conf config1 \
+  --net ingolstadt_custom \
+  --env-seed 42
+
+tmux detach
+tmux attach -t ucb_run
+
+
+Tomorrow, we can easily write a Python script to scan through all 54 BenchmarkMetrics.csv files inside that sweep_bandit folder and instantly rank the best hyperparameter configurations for you!
+
+You are all clear to start bash scripts/sweep_bandit.sh!
+
+---
+## System Resource Notes (May 21, Sweep Run)
+- **RAM**: Healthy (4.0 GB used out of 31 GB)
+- **Disk**: Healthy (25% used, 58 GB free)
+- **CPU Load**: Heavily overloaded (Load average ~27 on a 16-core machine).
+- **Cause**: 6 parallel jobs * 5 heavy threads (1 Python, 1 SUMO, 3 path_gen_workers) = 30 heavy threads fighting for 16 physical cores.
+- **Impact**: Each batch of 6 parallel jobs takes ~3.5 hours due to massive context switching.
+- **Recommendation for Next Sweep**: Lower `PARALLEL_JOBS` to 3 in the bash script, or change `"path_gen_workers": 1` in the algorithm config.
+
+
+tmux capture-pane -pt sweep_run -S -20 && echo "---" && find results/sweep_bandit -maxdepth 1 -mindepth 1 -type d | wc -l
+ free -h; echo ""; uptime; echo ""; df -h /
+ ls -lrt results/sweep_bandit | tail -n 6
+tmux capture-pane -pt sweep_run -S -20 && echo "---" && find results/sweep_bandit -maxdepth 1 -mindepth 1 -type d | wc -l

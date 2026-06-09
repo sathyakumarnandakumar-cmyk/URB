@@ -9,5 +9,5 @@
     "number_of_paths" : 4,
     "path_gen_beta" : -5,
     "num_samples" : 10,
-    "path_gen_workers": 3
+    "path_gen_workers": 4
 }
