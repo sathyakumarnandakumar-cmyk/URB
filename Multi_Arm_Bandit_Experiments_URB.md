@@ -162,4 +162,8 @@ To understand the improvements provided by the Contextual Bandit REINFORCE appro
 
 As observed below, the Bandit approach drastically reduces variance and successfully converges to a stable, highly-efficient routing distribution. By treating the problem as a simpler contextual selection, it avoids the massive destabilization and traffic "herding" phenomena commonly suffered by traditional IQL agents.
 
-![Bandit vs IQL Travel Times](results/combined_raw_travel_times.png)
+**1. Travel Times Comparison**
+![Bandit vs IQL Travel Times](results/combined_comparison_plots/combined_travel_times.png)
+
+**2. Rewards Comparison**
+![Bandit vs IQL Rewards](results/combined_comparison_plots/combined_rewards.png)
