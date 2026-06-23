@@ -32,6 +32,20 @@ This separation of concerns drastically shrinks the action space for the RL agen
 
 To test the efficacy of the Bandit approach, we implemented a **Bandit REINFORCE** algorithm. This is an independent policy gradient model utilizing a PyTorch Multi-Layer Perceptron (MLP), replacing deterministic algorithms with a differentiable, stochastic approach.
 
+### Observations (State Features)
+Unlike independent Q-learning or UCB where each agent maintains its own localized state table, the Contextual Bandit REINFORCE approach uses a single **Shared Neural Network** (`RouteScorer`). All Autonomous Vehicles (AVs) query this shared network, passing in a highly detailed **8-dimensional observation vector** that describes the specific route in question. 
+
+This observation vector comprehensively models the current routing dilemma by blending static topological data, real-time dynamic traffic states (extracted directly from the simulation), fleet memory, and temporal context:
+
+1. **`free_flow_time` (Static):** The baseline travel time for the route assuming zero congestion. This serves as the foundational topological heuristic.
+2. **`length_km` (Static):** The total physical distance of the route. *(Currently mocked to 0.0 for framework compatibility).*
+3. **`motorway_share` (Static):** The proportion of the route that relies on high-capacity motorways versus local roads. *(Currently mocked to 0.0).*
+4. **`n_left_turns` (Static):** A penalty metric tracking the number of left turns required, which inherently incur higher intersection delay risks. *(Currently mocked to 0.0).*
+5. **`mean_speed_ratio` (Dynamic via TraCI):** A live metric extracted via the URB simulator's TraCI connection (`env.simulator.sumo_connection`). It represents the real-time ratio of current vehicle speeds to the speed limit along the route's edges, acting as a direct indicator of live congestion.
+6. **`mean_occupancy` (Dynamic via TraCI):** A real-time metric measuring the percentage of the road space currently occupied by vehicles. A high occupancy signals heavy traffic density and impending bottlenecks.
+7. **`mean_cav_link_load` (Fleet Memory):** An internal state-tracking mechanism that aggregates recent route commitments made by other AVs in the fleet. This crucial feature allows the agent to implicitly coordinate its fleet and avoid "herding" (accidentally sending too many AVs down the same path simultaneously).
+8. **`departure_time_normalized` (Temporal Context):** The relative start time of the AV's journey, allowing the neural network to adjust its routing strategy based on macroscopic time-of-day traffic patterns (e.g., evolving rush hour peaks).
+
 ### Action Selection
 The agent’s neural network outputs a vector of scores (logits) for each available route. These logits are scaled by a **Temperature ($\tau$)** parameter to control the sharpness of the distribution, and are then converted into probabilities using a Softmax function:
 
@@ -112,3 +126,40 @@ While the convergence still succeeds, it is noticeably noisier with wider varian
 
 **Rewards:**
 ![Worst Rewards](results/sweep_bandit/lr_3e-4_ent_0.01_temp_1.0_seed_42/plots/rewards.png)
+
+---
+
+## 7. Long Production Run (`bandit_long_run_42`)
+
+Following the hyperparameter sweep, a full extended production run was executed on the `ingolstadt_custom` network to thoroughly evaluate the long-term convergence of the Contextual Bandit REINFORCE algorithm.
+
+### Run Configuration
+This run uses the **Best Configuration** identified during the hyperparameter sweep.
+
+* **Algorithm:** Bandit REINFORCE
+* **Network:** `ingolstadt_custom`
+* **Environment Seed:** `42`
+* **Total Episodes:** 4300 (`200` human + `4000` training + `100` test)
+
+**Selected Hyperparameters:**
+* **Learning Rate (`lr`):** `1e-3` (0.001)
+* **Entropy Coefficient:** `0.05`
+* **Softmax Temperature:** `0.5`
+* **Baseline Alpha (EMA):** `0.05`
+* **Hidden Layer Size:** `64`
+
+### Expected Outputs
+The results of this extended production run are located in the `results/bandit_long_run_42/` directory. Key output files include:
+- `losses/losses.csv`: Tracks the REINFORCE loss, total fleet reward (negative mean travel time), and mean entropy per episode.
+- `metrics/BenchmarkMetrics.csv`: Contains the final performance metrics (`t_test`, `t_CAV`, etc.) evaluating how well the trained Bandit policy decongested the network compared to the human baseline.
+- `plots/`: Visualizations of the training curves and traffic distributions.
+
+---
+
+## 8. Comparison against Deep MARL (IQL)
+
+To understand the improvements provided by the Contextual Bandit REINFORCE approach, we can directly contrast its convergence stability with a standard Deep Multi-Agent Reinforcement Learning algorithm—Independent Q-Learning (IQL)—running on the same `ingolstadt_custom` network.
+
+As observed below, the Bandit approach drastically reduces variance and successfully converges to a stable, highly-efficient routing distribution. By treating the problem as a simpler contextual selection, it avoids the massive destabilization and traffic "herding" phenomena commonly suffered by traditional IQL agents.
+
+![Bandit vs IQL Travel Times](results/combined_raw_travel_times.png)
